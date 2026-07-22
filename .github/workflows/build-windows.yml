@@ -26,6 +26,13 @@ jobs:
         run: |
           python -m playwright install chromium
 
+      - name: Get version
+        shell: pwsh
+        run: |
+          $ver = Get-Content VERSION -TotalCount 1
+          echo "APP_VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "Version: $ver"
+
       - name: Find Chromium and set path
         shell: pwsh
         run: |
@@ -56,9 +63,11 @@ jobs:
           CHROMIUM_PATH: ${{ env.CHROMIUM_PATH }}
 
       - name: Rename EXE
+        shell: pwsh
         run: |
+          $ver = $env:APP_VERSION
           cd backend\dist
-          ren HKUBookingWeb.exe 港大预约系统.exe
+          Rename-Item HKUBookingWeb.exe "港大预约系统_$ver.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
