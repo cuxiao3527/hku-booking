@@ -19,6 +19,13 @@ a = Analysis(
     binaries=[],
     datas=added_files,
     hiddenimports=[
+        "playwright",
+        "playwright.sync_api",
+        "playwright._impl._sync_base",
+        "playwright._impl._connection",
+        "playwright._impl._errors",
+        "pyee",
+        "greenlet",
         "uvicorn",
         "uvicorn.logging",
         "uvicorn.loops",

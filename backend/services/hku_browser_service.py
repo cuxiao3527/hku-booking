@@ -7,7 +7,12 @@ import requests
 import time
 import logging
 from typing import Optional, Tuple, List, Dict
-from playwright.sync_api import sync_playwright
+try:
+    from playwright.sync_api import sync_playwright
+    _HAS_PLAYWRIGHT = True
+except ImportError:
+    _HAS_PLAYWRIGHT = False
+    sync_playwright = None
 
 from config import HKU_API_SEND_CODE, HKU_API_LOGIN
 from services.email_service import KukuMailService
@@ -18,6 +23,10 @@ RECAPTCHA_SITE_KEY = "6LcpnTEtAAAAAJi5ZZvdEyXD06N-gWIPpE3w3RFw"
 
 
 def get_recaptcha_token() -> Optional[str]:
+    if not _HAS_PLAYWRIGHT:
+        logger.error("Playwright 未安装，无法获取 reCAPTCHA 令牌")
+        logger.error("请在终端运行: pip install playwright && playwright install chromium")
+        return None
     """获取 reCAPTCHA v3 令牌（独立函数，不需要 KukuMailService）"""
     try:
         with sync_playwright() as p:
