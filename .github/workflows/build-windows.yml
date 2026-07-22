@@ -21,12 +21,26 @@ jobs:
       - name: Install dependencies
         run: |
           cd backend
-          pip install -r requirements.txt pyinstaller
+          pip install -r requirements.txt pyinstaller playwright
 
-      - name: Build EXE
+      - name: Install Chromium for Playwright
+        run: |
+          python -m playwright install --only-shell chromium
+
+      - name: Find Chromium path
+        id: find_chromium
+        shell: pwsh
+        run: |
+          $path = Resolve-Path "$env:USERPROFILE\AppData\Local\ms-playwright\chromium_headless_shell-*\chrome-win\chrome.exe"
+          echo "CHROMIUM_PATH=$path" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "Found Chromium at: $path"
+
+      - name: Build EXE (with Chromium bundled)
         run: |
           cd backend
           python -m PyInstaller hku-booking.spec --noconfirm --clean
+        env:
+          CHROMIUM_PATH: ${{ env.CHROMIUM_PATH }}
 
       - name: Rename EXE
         run: |
