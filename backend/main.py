@@ -1,6 +1,13 @@
 """
 港大预约系统 - 后端API
 """
+import sys
+# PyInstaller 窗口模式下 sys.stderr 可能为 None，导致 uvicorn 日志配置失败
+if sys.stderr is None:
+    import io
+    sys.stderr = io.StringIO()
+    sys.stdout = io.StringIO()
+
 from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm

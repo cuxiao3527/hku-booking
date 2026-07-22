@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec for HKU Booking Web - bundles Playwright driver + Chromium."""
+"""PyInstaller spec for HKU Booking Web (v1.0.0)"""
 import os
 import sys
 import playwright
@@ -7,31 +7,44 @@ import playwright
 backend_dir = os.path.abspath(SPECPATH)
 frontend_dist = os.path.join(os.path.dirname(backend_dir), "frontend", "dist")
 
-# 1. Frontend static files
+# Frontend static files
 added_files = [
     (frontend_dist, "frontend/dist"),
 ]
 
-# 2. Playwright driver (Node.js binary + package files)
+# Playwright Node.js driver
 playwright_dir = os.path.dirname(playwright.__file__)
 driver_dir = os.path.join(playwright_dir, "driver")
 if os.path.exists(driver_dir):
     added_files.append((driver_dir, "playwright/driver"))
+    print(f"[spec] Playwright driver: {driver_dir}")
 
-# 3. Chromium browser (from env var or default cache path)
+# Chromium browser - find and bundle
 chromium_path = os.environ.get("CHROMIUM_PATH", "")
-if not chromium_path:
-    # Try to find Chromium in Playwright cache
-    cache_dir = os.environ.get("PLAYWRIGHT_BROWSERS_PATH", 
-        os.path.join(os.environ.get("USERPROFILE", "C:\\Users\\default"), 
-                     "AppData", "Local", "ms-playwright"))
-    if os.path.exists(cache_dir):
-        for item in os.listdir(cache_dir):
-            if item.startswith("chromium"):
-                chrome_exe = os.path.join(cache_dir, item, "chrome-win", "chrome.exe")
-                if os.path.exists(chrome_exe):
-                    chromium_path = chrome_exe
-                    break
+if chromium_path and os.path.exists(chromium_path):
+    # chromium_path is a file path, bundle its parent directory
+    chrome_dir = os.path.dirname(chromium_path)  # .../chrome-win64
+    added_files.append((chrome_dir, "chromium"))
+    print(f"[spec] Chromium bundled: {chromium_path}")
+else:
+    # Fallback: search Playwright cache
+    cache_base = os.environ.get("PLAYWRIGHT_BROWSERS_PATH", "")
+    if not cache_base:
+        userprofile = os.environ.get("USERPROFILE", "")
+        if userprofile:
+            cache_base = os.path.join(userprofile, "AppData", "Local", "ms-playwright")
+    if os.path.exists(cache_base):
+        for item in os.listdir(cache_base):
+            if item.startswith("chromium-"):
+                for subdir in ["chrome-win64", "chrome-win"]:
+                    exe_path = os.path.join(cache_base, item, subdir, "chrome.exe")
+                    if os.path.exists(exe_path):
+                        chrome_dir = os.path.dirname(exe_path)
+                        added_files.append((chrome_dir, "chromium"))
+                        print(f"[spec] Chromium fallback: {exe_path}")
+                        break
+                break
+    print(f"[spec] Chromium NOT bundled (not found)")
 
 a = Analysis(
     ["main.py"],
@@ -43,7 +56,7 @@ a = Analysis(
         "playwright.sync_api",
         "playwright._impl._sync_base",
         "playwright._impl._connection",
-        "playwright._impl._errors", 
+        "playwright._impl._errors",
         "playwright._impl._browser_type",
         "playwright._impl._transport",
         "pyee",
@@ -51,6 +64,7 @@ a = Analysis(
         "greenlet",
         "uvicorn",
         "uvicorn.logging",
+        "uvicorn.config",
         "uvicorn.loops",
         "uvicorn.loops.auto",
         "uvicorn.protocols",
@@ -94,7 +108,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=True,  # 显示控制台窗口，避免 sys.stderr 为 None
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

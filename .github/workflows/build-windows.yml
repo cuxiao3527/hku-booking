@@ -33,17 +33,19 @@ jobs:
           Write-Host "Looking in: $base"
           if (Test-Path $base) {
             Get-ChildItem $base -Directory | Where-Object { $_.Name -match "^chromium-" } | ForEach-Object {
-              Write-Host "  Found: $($_.Name)"
-              # Try chrome-win, chrome-win64, chrome
-              foreach ($sub in @("chrome-win64", "chrome-win", "chrome")) {
-                $chrome = Join-Path $_.FullName "$sub\chrome.exe"
-                if (Test-Path $chrome) {
-                  Write-Host "CHROMIUM: $chrome"
-                  echo "CHROMIUM_PATH=$chrome" | Out-File -FilePath $env:GITHUB_ENV -Append
-                  break
-                }
+              Write-Host "  Found chromium dir: $($_.Name)"
+              # 递归搜索 chrome.exe
+              $chrome = Get-ChildItem -Recurse -Filter "chrome.exe" $_.FullName | Select-Object -First 1
+              if ($chrome) {
+                Write-Host "CHROMIUM: $($chrome.FullName)"
+                echo "CHROMIUM_PATH=$($chrome.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+              } else {
+                Write-Host "  WARNING: No chrome.exe found in $($_.FullName)"
+                Get-ChildItem $_.FullName -Depth 2 | Select-Object -First 10 | ForEach-Object { Write-Host "    $($_.FullName)" }
               }
             }
+          } else {
+            Write-Host "WARNING: $base does not exist"
           }
 
       - name: Build EXE
@@ -61,5 +63,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 港大预约系统-Windows单文件版
+          name: 港大预约系统-v1.0.0-Windows单文件版
           path: backend\dist\港大预约系统.exe
