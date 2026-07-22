@@ -26,18 +26,28 @@ jobs:
         run: |
           python -m playwright install chromium
 
-      - name: Set Chromium path
-        id: find_chrome
+      - name: Find Chromium and set path
         shell: pwsh
         run: |
-          $chrome = Resolve-Path "$env:USERPROFILE\AppData\Local\ms-playwright\chromium-*\chrome-win\chrome.exe"
-          echo "CHROMIUM_PATH=$chrome" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "Found: $chrome"
+          $base = "$env:USERPROFILE\AppData\Local\ms-playwright"
+          Write-Host "Looking in: $base"
+          if (Test-Path $base) {
+            Get-ChildItem $base -Directory | ForEach-Object {
+              Write-Host "  Found: $($_.Name)"
+              $chrome = Join-Path $_.FullName "chrome-win\chrome.exe"
+              if (Test-Path $chrome) {
+                Write-Host "CHROMIUM: $chrome"
+                echo "CHROMIUM_PATH=$chrome" | Out-File -FilePath $env:GITHUB_ENV -Append
+              }
+            }
+          }
 
       - name: Build EXE
         run: |
           cd backend
           python -m PyInstaller hku-booking.spec --noconfirm --clean
+        env:
+          CHROMIUM_PATH: ${{ env.CHROMIUM_PATH }}
 
       - name: Rename EXE
         run: |
