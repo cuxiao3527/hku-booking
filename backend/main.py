@@ -68,6 +68,38 @@ app.add_middleware(
 )
 
 # ========== 全局邮箱配置辅助函数 ==========
+def _auto_load_kuku_config(db: Session):
+    """从 kuku_config.json 自动加载 Kuku 配置（仅首次启动时）"""
+    import os, json
+    config_path = os.path.join(os.path.dirname(__file__), "kuku_config.json")
+    if not os.path.exists(config_path):
+        return
+    
+    # 检查是否已配置
+    existing = get_global_kuku_config(db)
+    if existing.get("cookie"):
+        return  # 已配置，跳过
+    
+    try:
+        with open(config_path) as f:
+            data = json.load(f)
+        if data.get("token") and data.get("subtoken") and data.get("cookie"):
+            for key, value, desc in [
+                ("kuku_token", data["token"], "Kuku Token"),
+                ("kuku_subtoken", data["subtoken"], "Kuku SubToken"),
+                ("kuku_cookie", data["cookie"], "Kuku Cookie"),
+            ]:
+                config = db.query(SystemConfig).filter(SystemConfig.key == key).first()
+                if config:
+                    config.value = value
+                else:
+                    db.add(SystemConfig(key=key, value=value, description=desc))
+            db.commit()
+            logger.info("Kuku 配置已从 kuku_config.json 自动加载")
+    except Exception as e:
+        logger.error(f"加载 Kuku 配置文件失败: {e}")
+
+
 def get_global_kuku_config(db: Session) -> dict:
     """获取全局邮箱配置"""
     cookie = db.query(SystemConfig).filter(SystemConfig.key == "kuku_cookie").first()
@@ -238,6 +270,14 @@ async def startup_event():
         id="daily_token_refresh",
         replace_existing=True
     )
+    
+    # 自动加载 Kuku 邮箱配置（无数据库配置时从 kuku_config.json 读取）
+    try:
+        _kuku_db = SessionLocal()
+        _auto_load_kuku_config(_kuku_db)
+        _kuku_db.close()
+    except Exception as e:
+        logger.warning(f"自动加载 Kuku 配置失败: {e}")
     
     # 恢复所有未执行的预约任务调度（解决服务重启后任务丢失的问题）
     restore_db = SessionLocal()
