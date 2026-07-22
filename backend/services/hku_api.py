@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import logging
 
 from config import (
+    HKU_API_BASE,
     HKU_API_GET_DATES,
     HKU_API_BOOK,
     HKU_API_SEND_CODE,
@@ -22,18 +23,15 @@ logger = logging.getLogger(__name__)
 
 class HKUApiService:
     HEADERS_TEMPLATE = {
-        "Host": "prod-app-finclip.azurewebsites.net",
         "Connection": "keep-alive",
         "Origin": "https://tourist-registration-form.hku.hk",
         "Referer": "https://tourist-registration-form.hku.hk/",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
-        "urlCall": "web",
         "Content-Type": "application/json"
     }
     
     LOGIN_HEADERS = {
-        "Host": "prod-app-finclip.azurewebsites.net",
         "Connection": "keep-alive",
         "Origin": "https://tourist-registration-form.hku.hk",
         "Referer": "https://tourist-registration-form.hku.hk/",
@@ -44,7 +42,23 @@ class HKUApiService:
     def __init__(self, token: Optional[str] = None):
         self.token = token
         self.session = requests.Session()
+        self._ensure_session()
     
+    def _ensure_session(self):
+        """获取 HKU 主站的 session cookie（_app_sess），新版 API 需要此 cookie"""
+        try:
+            resp = self.session.get(
+                "https://tourist-registration-form.hku.hk/",
+                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+                timeout=15
+            )
+            if resp.status_code == 200:
+                logger.info("HKU session cookie 已获取")
+            else:
+                logger.warning(f"获取 HKU session cookie 失败: HTTP {resp.status_code}")
+        except Exception as e:
+            logger.warning(f"获取 HKU session cookie 异常: {e}")
+
     def _get_headers(self, token: Optional[str] = None) -> dict:
         headers = self.HEADERS_TEMPLATE.copy()
         t = token or self.token
@@ -55,7 +69,7 @@ class HKUApiService:
     def send_verification_code(self, email: str) -> Tuple[bool, str]:
         """发送验证码到邮箱"""
         try:
-            resp = requests.post(
+            resp = self.session.post(
                 HKU_API_SEND_CODE,
                 headers=self.LOGIN_HEADERS,
                 json={"email": email},
@@ -80,7 +94,7 @@ class HKUApiService:
         返回: (token, name, id_card) 或 (None, None, None)
         """
         try:
-            resp = requests.post(
+            resp = self.session.post(
                 HKU_API_LOGIN,
                 headers=self.LOGIN_HEADERS,
                 json={"email": email, "emailCode": code},
@@ -234,7 +248,7 @@ class HKUApiService:
         
         try:
             headers = self._get_headers()
-            resp = requests.post(
+            resp = self.session.post(
                 HKU_API_APPOINTMENT_LIST,
                 headers=headers,
                 json={},
@@ -261,7 +275,7 @@ class HKUApiService:
         
         try:
             headers = self._get_headers()
-            resp = requests.post(
+            resp = self.session.post(
                 HKU_API_APPOINTMENT_LIST,
                 headers=headers,
                 json={},
@@ -312,7 +326,7 @@ class HKUApiService:
         
         try:
             headers = self._get_headers()
-            resp = requests.post(
+            resp = self.session.post(
                 HKU_API_CANCEL_APPOINTMENT,
                 headers=headers,
                 json={"id": appointment_id},

@@ -35,7 +35,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "hku-booking-secret-key-change-in-prod
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 
-HKU_API_BASE = "https://prod-app-finclip.azurewebsites.net"
+HKU_API_BASE = "https://tourist-registration-form.hku.hk"
 HKU_API_GET_DATES = f"{HKU_API_BASE}/app/user/booking/availableDatesForIndividualTour"
 HKU_API_BOOK = f"{HKU_API_BASE}/app/user/booking/applyViaH5"
 HKU_API_SEND_CODE = f"{HKU_API_BASE}/app/user/login/emailCode"
