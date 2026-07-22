@@ -20,14 +20,19 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd backend
-          pip install -r requirements.txt pyinstaller
+          pip install -r backend/requirements.txt pyinstaller playwright
 
-      - name: Set UTF-8 encoding
+      - name: Install Chromium
+        run: |
+          python -m playwright install chromium
+
+      - name: Set Chromium path
+        id: find_chrome
         shell: pwsh
         run: |
-          echo "PYTHONUTF8=1" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "PYTHONIOENCODING=utf-8" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $chrome = Resolve-Path "$env:USERPROFILE\AppData\Local\ms-playwright\chromium-*\chrome-win\chrome.exe"
+          echo "CHROMIUM_PATH=$chrome" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "Found: $chrome"
 
       - name: Build EXE
         run: |
