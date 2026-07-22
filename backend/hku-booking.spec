@@ -5,14 +5,13 @@ import os
 backend_dir = os.path.abspath(SPECPATH)
 frontend_dist = os.path.join(os.path.dirname(backend_dir), "frontend", "dist")
 
-import os
-_chromium_path = os.environ.get("CHROMIUM_PATH", "")
 added_files = [
     (frontend_dist, "frontend/dist"),
 ]
-# 如果设置了 CHROMIUM_PATH 环境变量，把 Chromium 打包进去
-if _chromium_path and os.path.exists(_chromium_path):
-    added_files.append((_chromium_path, "chromium"))
+
+import os
+os.environ["PYTHONUTF8"] = "1"
+os.environ["PYTHONIOENCODING"] = "utf-8"
 
 a = Analysis(
     ["main.py"],
