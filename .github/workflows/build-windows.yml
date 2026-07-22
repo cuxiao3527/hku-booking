@@ -32,12 +32,16 @@ jobs:
           $base = "$env:USERPROFILE\AppData\Local\ms-playwright"
           Write-Host "Looking in: $base"
           if (Test-Path $base) {
-            Get-ChildItem $base -Directory | ForEach-Object {
+            Get-ChildItem $base -Directory | Where-Object { $_.Name -match "^chromium-" } | ForEach-Object {
               Write-Host "  Found: $($_.Name)"
-              $chrome = Join-Path $_.FullName "chrome-win\chrome.exe"
-              if (Test-Path $chrome) {
-                Write-Host "CHROMIUM: $chrome"
-                echo "CHROMIUM_PATH=$chrome" | Out-File -FilePath $env:GITHUB_ENV -Append
+              # Try chrome-win, chrome-win64, chrome
+              foreach ($sub in @("chrome-win64", "chrome-win", "chrome")) {
+                $chrome = Join-Path $_.FullName "$sub\chrome.exe"
+                if (Test-Path $chrome) {
+                  Write-Host "CHROMIUM: $chrome"
+                  echo "CHROMIUM_PATH=$chrome" | Out-File -FilePath $env:GITHUB_ENV -Append
+                  break
+                }
               }
             }
           }
