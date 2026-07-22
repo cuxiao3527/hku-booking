@@ -1,58 +1,66 @@
-港大预约参观系统 - 整合版（单 .exe 版）
-========================================
+港大预约参观系统 - 整合版
+=========================
 
-本文件夹包含完整源码和打包脚本。
+本文件夹包含完整源码，目前已在 Mac 上正常运行。
+后端启动后，浏览器访问 http://localhost:8888 即可使用。
 
-如果你不想在 Windows 上安装 Python，也不想带源码到 Windows，
-请使用【方案一：GitHub Actions 云端打包】。
+========================
+Mac 开发运行
+========================
 
-══════════════════════════════════════════
-方案一：GitHub Actions 云端打包（推荐）
-══════════════════════════════════════════
+./start_dev.sh
+或手动:
+  cd backend
+  PYTHONPATH="/Users/cuixiao/Library/Python/3.9/lib/python/site-packages" \
+    /Library/Developer/CommandLineTools/usr/bin/python3.9 main.py
 
-优点：不需要 Windows 电脑、不需要安装 Python、不需要带源码到 Windows
-缺点：需要有 GitHub 账号（免费注册）
+默认管理员: admin / admin123
 
-操作步骤：
-1. 注册 GitHub 账号：https://github.com/signup
-2. 新建一个仓库，例如 hku-booking
-3. 把当前 "HKU_Booking_整合版" 文件夹里的所有文件上传到该仓库
-   （注意：是整个文件夹里的内容，不是文件夹本身）
-   包括：backend/、frontend/、.github/、build_windows.bat、start_dev.sh、使用说明.txt
-4. 上传后，GitHub 会自动开始打包
-5. 等待约 3-5 分钟
-6. 在 GitHub 仓库页面点击 Actions -> Build Windows EXE
-7. 点击最新的运行记录，拉到最下面下载 "港大预约系统-Windows单文件版"
-8. 解压下载的 zip，得到 "港大预约系统.exe"
-9. 把这个 .exe 复制到任意 Windows 电脑双击即可运行
+========================
+Windows 打包（GitHub Actions）
+========================
 
-══════════════════════════════════════════
-方案二：本地 Windows 打包
-══════════════════════════════════════════
+把整个文件夹推送到 GitHub，.github/workflows/ 会自动打包为 .exe。
 
-如果你有一台 Windows 电脑且愿意临时安装 Python：
+========================
+使用流程
+========================
 
-1. 把整个 "HKU_Booking_整合版" 文件夹复制到 Windows
-2. 安装 Python 3.9+（https://www.python.org/downloads/）
-   安装时务必勾选 "Add Python to PATH"
-3. 双击 build_windows.bat
-4. 等待打包完成
-5. 根目录会生成 "港大预约系统.exe"
+1. 打开 http://localhost:8888 → 用 admin / admin123 登录
+2. 进入「系统设置」→ 配置 Kuku 邮箱 (Token/SubToken/Cookie)
+3. 进入「预约账号」→ 添加账号（姓名、证件后4位）
+4. 选中账号 → 点击「自动登录」（系统自动创建临时邮箱并获取 Token）
+5. 进入「预约任务」→ 查询可用日期 → 创建任务 → 调度/立即执行
+6. 也可启用「自动补票」，系统会自动创建邮箱 → 登录 → 抢票
 
-══════════════════════════════════════════
-运行说明
-══════════════════════════════════════════
+========================
+项目结构
+========================
 
-- 双击 "港大预约系统.exe" 启动
-- 浏览器会自动打开 http://localhost:5353
-- 默认管理员账号: admin / admin123
-- 数据库 hku_local.db 会在 .exe 同级目录自动生成
-- 关闭程序窗口即可停止服务
+backend/               FastAPI 后端源码
+  main.py              入口（自动建表、启动调度器）
+  config.py            配置（API 地址、数据库路径）
+  services/
+    hku_api.py          港大 API 封装
+    email_service.py    临时邮箱（kuku.lu）服务
+    scheduler_service.py 定时任务调度
+    auto_booking_service.py 自动补票
+frontend/dist/         编译好的 Vue3 前端页面
+hku_local.db           SQLite 数据库（自动生成）
+start_dev.sh           Mac 启动脚本
+build_windows.bat      Windows 打包脚本
 
-══════════════════════════════════════════
-Mac 开发使用
-══════════════════════════════════════════
+========================
+港大 API 说明
+========================
 
-1. cd backend && pip install -r requirements.txt
-2. ./start_dev.sh
-3. 浏览器访问 http://localhost:5353
+基础地址: https://prod-app-finclip.azurewebsites.net
+
+- POST /app/user/login/emailCode         发送验证码
+- POST /app/user/login/email             验证码登录 → 获取 Token
+- GET  /app/user/booking/availableDatesForIndividualTour  查询可预约日期
+- POST /app/user/booking/applyViaH5      提交预约（新接口）
+- POST /app/user/login/getAppointmentList 查询预约记录
+- POST /app/user/login/cancelAppointment  取消预约
+
+Token 有效期 1 天，过期后需重新登录。

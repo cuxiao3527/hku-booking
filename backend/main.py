@@ -12,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from datetime import timedelta, datetime, timezone
 from typing import List, Optional
 import logging
+import sys
 import threading
 import time
 import webbrowser
