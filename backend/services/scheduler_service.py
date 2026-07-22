@@ -15,8 +15,18 @@ from sqlalchemy.orm import Session
 
 from database import SessionLocal
 from models import BookingTask, BookingAccount, TaskLog, SystemConfig
-from services.hku_api import HKUApiService
 from services.email_service import KukuMailService
+from services.hku_api import HKUApiService
+
+def _get_recaptcha_token_safe():
+    """安全获取 reCAPTCHA 令牌（失败时返回 None）"""
+    try:
+        from services.hku_browser_service import get_recaptcha_token
+        return get_recaptcha_token()
+    except Exception:
+        return None
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -90,30 +100,13 @@ class BookingScheduler:
             
             self.add_log(db, task_id, "INFO", f"临时邮箱: {temp_email}")
             
-            # 2. 发送验证码
-            hku_api = HKUApiService()
-            success, msg = hku_api.send_verification_code(temp_email)
+            # 2. 通过浏览器登录（自动处理 reCAPTCHA + 验证码 + 登录）
+            from services.hku_browser_service import BrowserLoginService
+            browser = BrowserLoginService(mail_service)
+            success, msg, token = browser.auto_login(temp_email)
             
-            if not success:
-                self.add_log(db, task_id, "ERROR", f"发送验证码失败: {msg}")
-                return None
-            
-            self.add_log(db, task_id, "INFO", "验证码已发送，等待接收...")
-            
-            # 3. 等待并提取验证码
-            code = mail_service.get_verification_code(temp_email, timeout=90)
-            
-            if not code:
-                self.add_log(db, task_id, "ERROR", "获取验证码失败或超时")
-                return None
-            
-            self.add_log(db, task_id, "INFO", f"验证码: {code}")
-            
-            # 4. 登录获取Token
-            token, name, id_card = hku_api.login(temp_email, code)
-            
-            if not token:
-                self.add_log(db, task_id, "ERROR", "登录失败")
+            if not success or not token:
+                self.add_log(db, task_id, "ERROR", f"登录失败: {msg}")
                 return None
             
             # 更新账号Token
@@ -239,13 +232,15 @@ class BookingScheduler:
         
         self.add_log(db, task_id, "INFO", "极速请求（单次，不重试）...")
         
+        recaptcha_token = _get_recaptcha_token_safe()
         ok, result_msg = hku_api.book(
             name=account.name,
             id_card=account.id_card,
             target_date=task.target_date,
             slot_id=slot_id,
             companions=account.companions,
-            entourage_list=account.entourage_list or []
+            entourage_list=account.entourage_list or [],
+            recaptcha_token=recaptcha_token
         )
         
         if ok:
@@ -347,13 +342,15 @@ class BookingScheduler:
             
             self.add_log(db, task_id, "INFO", f"尝试预约 ({retry + 1}/{task.max_retries})...")
             
+            recaptcha_token = _get_recaptcha_token_safe()
             ok, result_msg = hku_api.book(
                 name=account.name,
                 id_card=account.id_card,
                 target_date=task.target_date,
                 slot_id=slot_id,
                 companions=account.companions,
-                entourage_list=account.entourage_list or []
+                entourage_list=account.entourage_list or [],
+                recaptcha_token=recaptcha_token
             )
             
             if ok:

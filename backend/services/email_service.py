@@ -34,10 +34,40 @@ class KukuMailService:
             'Cookie': cookie
         }
         
+        self._last_token_refresh = 0
+        self._token_refresh_interval = 300  # 5 minutes
         logger.info(f"邮箱服务初始化: Token={token[:8]}..., SubToken={subtoken[:8]}...")
     
+    def _refresh_csrf_tokens(self) -> bool:
+        """从 kuku.lu 页面获取最新的 CSRF SubToken（Token 不会变）"""
+        now = time.time()
+        if now - self._last_token_refresh < self._token_refresh_interval:
+            return True
+        try:
+            # 必须使用 self.headers（包含 Cookie），否则 kuku.lu 会拒绝请求
+            resp = self.session.get(
+                f"{self.base_url}/",
+                headers=self.headers,
+                timeout=15
+            )
+            import re
+            # CSRF SubToken 在页面 JavaScript 中，格式如: csrf_subtoken_check=xxxxxxxx...
+            match = re.search(r'csrf_subtoken_check=([a-f0-9]+)', resp.text)
+            if match:
+                self.subtoken = match.group(1)
+                self._last_token_refresh = now
+                logger.info(f"CSRF SubToken 已刷新: {self.subtoken[:8]}...")
+                return True
+            else:
+                logger.warning(f"未找到 CSRF SubToken (页面长度: {len(resp.text)})")
+                return False
+        except Exception as e:
+            logger.warning(f"刷新 CSRF Token 失败: {e}")
+            return False
+
     def create_email(self) -> Optional[str]:
         """创建新的临时邮箱"""
+        self._refresh_csrf_tokens()
         logger.info(f"使用 Token [{self.token[:6]}...] 请求创建邮箱...")
         
         params = {
@@ -70,6 +100,7 @@ class KukuMailService:
     
     def wait_for_email(self, email: str, timeout: int = 120) -> Tuple[Optional[str], Optional[str]]:
         """等待接收邮件，返回 (mail_id, mail_key)"""
+        self._refresh_csrf_tokens()
         logger.info(f"开始监听 {email} 的收件箱 (超时: {timeout}s)...")
         logger.info(f"使用 token: {self.token[:8] if self.token else 'None'}..., subtoken: {self.subtoken[:8] if self.subtoken else 'None'}...")
         

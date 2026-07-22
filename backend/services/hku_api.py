@@ -189,9 +189,10 @@ class HKUApiService:
         target_date: str,
         slot_id: int,
         companions: int = 0,
-        entourage_list: List[Dict] = None
+        entourage_list: List[Dict] = None,
+        recaptcha_token: str = None
     ) -> Tuple[bool, str]:
-        """发起预约请求"""
+        """发起预约请求（支持 reCAPTCHA 令牌）"""
         if not self.token:
             return False, "未设置Token"
         
@@ -207,6 +208,10 @@ class HKUApiService:
             "booking_rule_slot_id": slot_id,
             "entourageInfo": json.dumps(entourage_list)
         }
+        
+        # 如果有 reCAPTCHA 令牌，加入请求
+        if recaptcha_token:
+            payload["recaptchaToken"] = recaptcha_token
         
         logger.info(f"预约请求 payload: {json.dumps(payload, ensure_ascii=False)}")
         

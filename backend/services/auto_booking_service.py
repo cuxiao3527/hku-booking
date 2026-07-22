@@ -1,8 +1,8 @@
+import time
 """
 自动补票监控服务
 """
 import threading
-import time
 import random
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
@@ -11,9 +11,9 @@ from sqlalchemy.orm import Session
 
 from database import SessionLocal
 from models import BookingAccount, BookingTask, SystemConfig, User
-from services.hku_api import HKUApiService
 from services.email_service import KukuMailService
 from apscheduler.triggers.date import DateTrigger
+from services.hku_api import HKUApiService
 
 logger = logging.getLogger(__name__)
 
@@ -235,8 +235,6 @@ class AutoBookingService:
             cookie=config["cookie"]
         )
         
-        hku_api = HKUApiService()
-        
         created = 0
         for i in range(pool_size):
             try:
@@ -246,23 +244,12 @@ class AutoBookingService:
                     logger.warning(f"创建临时邮箱失败 (第{i+1}个)")
                     continue
                 
-                # 发送验证码
-                success, msg = hku_api.send_verification_code(temp_email)
-                if not success:
-                    logger.warning(f"发送验证码失败: {msg} (第{i+1}个)")
-                    continue
-                
-                # 等待并获取验证码
-                time.sleep(3)
-                code = mail_service.get_verification_code(temp_email, timeout=30)
-                if not code:
-                    logger.warning(f"获取验证码失败 (第{i+1}个)")
-                    continue
-                
-                # 登录获取Token
-                token, login_name, login_id_card = hku_api.login(temp_email, code)
-                if not token:
-                    logger.warning(f"登录失败 (第{i+1}个)")
+                # 通过浏览器登录（自动处理 reCAPTCHA + 验证码 + 登录）
+                from services.hku_browser_service import BrowserLoginService
+                browser = BrowserLoginService(mail_service)
+                success, msg, token = browser.auto_login(temp_email)
+                if not success or not token:
+                    logger.warning(f"登录失败: {msg} (第{i+1}个)")
                     continue
                 
                 # 生成随机姓名和身份证后4位

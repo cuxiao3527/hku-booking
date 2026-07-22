@@ -34,6 +34,7 @@ from auth import (
 from config import DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD
 from services.hku_api import HKUApiService
 from services.email_service import KukuMailService
+from services.hku_browser_service import BrowserLoginService
 from services.scheduler_service import booking_scheduler
 from services.auto_booking_service import auto_booking_service
 
@@ -90,7 +91,7 @@ def set_global_kuku_cookie(db: Session, cookie: str):
 
 
 def auto_create_email_and_login(db: Session, account: BookingAccount) -> tuple[bool, str]:
-    """自动创建邮箱并登录获取Token"""
+    """自动创建邮箱并通过浏览器登录获取Token（支持 reCAPTCHA）"""
     config = get_global_kuku_config(db)
     if not config["cookie"] or not config["token"] or not config["subtoken"]:
         return False, "邮箱配置不完整，请在系统设置中配置 Token、SubToken 和 Cookie"
@@ -115,31 +116,15 @@ def auto_create_email_and_login(db: Session, account: BookingAccount) -> tuple[b
         
         logger.info(f"[{account.name}] 临时邮箱: {temp_email}")
         
-        # 2. 发送验证码
-        hku_api = HKUApiService()
-        success, msg = hku_api.send_verification_code(temp_email)
+        # 2. 通过浏览器登录（处理 reCAPTCHA）
+        browser_service = BrowserLoginService(mail_service)
+        success, msg, hku_token = browser_service.auto_login(temp_email)
         
-        if not success:
-            return False, f"发送验证码失败: {msg}"
-        
-        logger.info(f"[{account.name}] 验证码已发送，等待接收...")
-        
-        # 3. 等待并提取验证码
-        code = mail_service.get_verification_code(temp_email, timeout=90)
-        
-        if not code:
-            return False, "获取验证码失败或超时"
-        
-        logger.info(f"[{account.name}] 验证码: {code}")
-        
-        # 4. 登录获取Token
-        token, name, id_card = hku_api.login(temp_email, code)
-        
-        if not token:
-            return False, "登录失败"
+        if not success or not hku_token:
+            return False, msg
         
         # 更新账号Token
-        account.hku_token = token
+        account.hku_token = hku_token
         account.token_status = "已登录"
         account.updated_at = datetime.utcnow()
         db.commit()
@@ -858,13 +843,26 @@ async def send_verification_code(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """发送港大验证码"""
+    """发送港大验证码（通过浏览器处理 reCAPTCHA）"""
     account = db.query(BookingAccount).filter(BookingAccount.id == account_id).first()
     if not account:
         raise HTTPException(status_code=404, detail="账号不存在")
     
-    hku_api = HKUApiService()
-    success, msg = hku_api.send_verification_code(request.email)
+    config = get_global_kuku_config(db)
+    if not config["cookie"] or not config["token"] or not config["subtoken"]:
+        raise HTTPException(status_code=400, detail="邮箱配置不完整")
+    
+    from services.email_service import KukuMailService
+    from services.hku_browser_service import BrowserLoginService
+    
+    mail_service = KukuMailService(
+        token=config["token"],
+        subtoken=config["subtoken"],
+        cookie=config["cookie"]
+    )
+    
+    browser = BrowserLoginService(mail_service)
+    success, msg = browser.send_verification_code(request.email)
     
     if success:
         account.email = request.email
@@ -943,7 +941,7 @@ async def set_kuku_config(
 
 
 @app.post("/api/accounts/{account_id}/auto-login", tags=["账号登录"])
-async def auto_login(
+def auto_login(
     account_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -992,6 +990,7 @@ async def get_account_emails(
     
     try:
         from services.email_service import KukuMailService
+        from services.hku_browser_service import BrowserLoginService
         mail_service = KukuMailService(
             token=config["token"],
             subtoken=config["subtoken"],
@@ -1788,6 +1787,7 @@ async def verify_success_emails(
 ):
     """核对预约成功的任务是否有对应的成功邮件"""
     from services.email_service import KukuMailService
+    from services.hku_browser_service import BrowserLoginService
     from services.scheduler_service import booking_scheduler
     
     # 构建查询：查找所有状态为success的任务
