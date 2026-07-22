@@ -1,0 +1,45 @@
+GitHub Actions 云端打包 Windows .exe 指南
+============================================
+
+第一步：注册/登录 GitHub
+  访问 https://github.com
+  没有账号就点 Sign up 注册（免费）
+
+第二步：创建仓库
+  1. 登录后点击右上角 + 号 -> New repository
+  2. Repository name 填：hku-booking
+  3. 选择 Public（免费）
+  4. 点击 Create repository
+
+第三步：上传文件
+  方法 A（网页上传，最简单）：
+    1. 在仓库页面点击 "uploading an existing file"
+    2. 把 HKU_Booking_整合版 文件夹里的所有文件和文件夹拖进去
+       包括：backend/、frontend/、.github/、build_windows.bat、start_dev.sh、使用说明.txt
+    3. 点击 Commit changes
+
+  方法 B（命令行）：
+    cd "HKU_Booking_整合版"
+    git init
+    git add .
+    git commit -m "init"
+    git branch -M main
+    git remote add origin https://github.com/你的用户名/hku-booking.git
+    git push -u origin main
+
+第四步：等待打包
+  1. 上传后点击仓库顶部 Actions
+  2. 看到 "Build Windows EXE" 正在运行
+  3. 等待变成绿色勾（约 3-5 分钟）
+
+第五步：下载 .exe
+  1. 点击最新的运行记录
+  2. 拉到最下面 Artifacts 区域
+  3. 点击 "港大预约系统-Windows单文件版" 下载
+  4. 解压 zip 文件，得到 "港大预约系统.exe"
+  5. 复制到 Windows 电脑双击即可运行
+
+注意事项：
+  - GitHub 免费账号的 Actions 有使用额度，普通使用足够
+  - 如果 Actions 页面没有自动运行，点击 "Build Windows EXE" -> "Run workflow"
+  - 下载的 artifact 有效期 90 天，建议下载后保存好 .exe

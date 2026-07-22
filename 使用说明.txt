@@ -1,0 +1,58 @@
+港大预约参观系统 - 整合版（单 .exe 版）
+========================================
+
+本文件夹包含完整源码和打包脚本。
+
+如果你不想在 Windows 上安装 Python，也不想带源码到 Windows，
+请使用【方案一：GitHub Actions 云端打包】。
+
+══════════════════════════════════════════
+方案一：GitHub Actions 云端打包（推荐）
+══════════════════════════════════════════
+
+优点：不需要 Windows 电脑、不需要安装 Python、不需要带源码到 Windows
+缺点：需要有 GitHub 账号（免费注册）
+
+操作步骤：
+1. 注册 GitHub 账号：https://github.com/signup
+2. 新建一个仓库，例如 hku-booking
+3. 把当前 "HKU_Booking_整合版" 文件夹里的所有文件上传到该仓库
+   （注意：是整个文件夹里的内容，不是文件夹本身）
+   包括：backend/、frontend/、.github/、build_windows.bat、start_dev.sh、使用说明.txt
+4. 上传后，GitHub 会自动开始打包
+5. 等待约 3-5 分钟
+6. 在 GitHub 仓库页面点击 Actions -> Build Windows EXE
+7. 点击最新的运行记录，拉到最下面下载 "港大预约系统-Windows单文件版"
+8. 解压下载的 zip，得到 "港大预约系统.exe"
+9. 把这个 .exe 复制到任意 Windows 电脑双击即可运行
+
+══════════════════════════════════════════
+方案二：本地 Windows 打包
+══════════════════════════════════════════
+
+如果你有一台 Windows 电脑且愿意临时安装 Python：
+
+1. 把整个 "HKU_Booking_整合版" 文件夹复制到 Windows
+2. 安装 Python 3.9+（https://www.python.org/downloads/）
+   安装时务必勾选 "Add Python to PATH"
+3. 双击 build_windows.bat
+4. 等待打包完成
+5. 根目录会生成 "港大预约系统.exe"
+
+══════════════════════════════════════════
+运行说明
+══════════════════════════════════════════
+
+- 双击 "港大预约系统.exe" 启动
+- 浏览器会自动打开 http://localhost:5353
+- 默认管理员账号: admin / admin123
+- 数据库 hku_local.db 会在 .exe 同级目录自动生成
+- 关闭程序窗口即可停止服务
+
+══════════════════════════════════════════
+Mac 开发使用
+══════════════════════════════════════════
+
+1. cd backend && pip install -r requirements.txt
+2. ./start_dev.sh
+3. 浏览器访问 http://localhost:5353

@@ -1,0 +1,40 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build EXE
+        run: |
+          cd backend
+          python -m PyInstaller hku-booking.spec --noconfirm --clean
+
+      - name: Rename EXE
+        run: |
+          cd backend\dist
+          ren HKUBookingWeb.exe 港大预约系统.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 港大预约系统-Windows单文件版
+          path: backend\dist\港大预约系统.exe
