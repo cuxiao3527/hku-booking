@@ -12,6 +12,12 @@ added_files = [
     (frontend_dist, "frontend/dist"),
 ]
 
+# 打包 kuku_config.json（首次启动自动加载邮箱配置）
+_kuku_cfg = os.path.join(backend_dir, "kuku_config.json")
+if os.path.exists(_kuku_cfg):
+    added_files.append((_kuku_cfg, "."))
+    print(f"[spec] Kuku config bundled")
+
 # Playwright Node.js driver
 playwright_dir = os.path.dirname(playwright.__file__)
 driver_dir = os.path.join(playwright_dir, "driver")
@@ -47,7 +53,7 @@ else:
     print(f"[spec] Chromium NOT bundled (not found)")
 
 a = Analysis(
-    ["main.py"],
+    ["launcher.py"],
     pathex=[backend_dir],
     binaries=[],
     datas=added_files,
