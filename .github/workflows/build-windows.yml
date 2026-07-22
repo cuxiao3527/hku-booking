@@ -27,9 +27,11 @@ jobs:
           python -m playwright install chromium
 
       - name: Get version
+        id: version
         shell: pwsh
         run: |
           $ver = Get-Content VERSION -TotalCount 1
+          echo "ver=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           echo "APP_VERSION=$ver" | Out-File -FilePath $env:GITHUB_ENV -Append
           echo "Version: $ver"
 
@@ -72,5 +74,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: 港大预约系统-v1.0.0-Windows单文件版
-          path: backend\dist\港大预约系统.exe
+          name: 港大预约系统-${{ steps.version.outputs.ver }}-Windows单文件版
+          path: backend\dist\港大预约系统_${{ steps.version.outputs.ver }}.exe
