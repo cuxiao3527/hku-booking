@@ -18,6 +18,12 @@ if os.path.exists(_kuku_cfg):
     added_files.append((_kuku_cfg, "."))
     print(f"[spec] Kuku config bundled")
 
+# 打包停止脚本（exe 同级目录）
+_stop_bat = os.path.join(backend_dir, "stop_server.bat")
+if os.path.exists(_stop_bat):
+    added_files.append((_stop_bat, "."))
+    print(f"[spec] Stop script bundled")
+
 # Playwright Node.js driver
 playwright_dir = os.path.dirname(playwright.__file__)
 driver_dir = os.path.join(playwright_dir, "driver")

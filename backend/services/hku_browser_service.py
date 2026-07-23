@@ -36,7 +36,7 @@ def get_recaptcha_token() -> Optional[str]:
                 import os, sys as _sys2
                 # PyInstaller 打包路径（Windows）
                 if hasattr(_sys2, '_MEIPASS'):
-                    _cp = os.path.join(_sys2._MEIPASS, "chromium", "chrome-win64", "chrome.exe")
+                    _cp = os.path.join(_sys2._MEIPASS, "chromium", "chrome.exe")
                     if os.path.exists(_cp):
                         browser = p.chromium.launch(executable_path=_cp, headless=True)
                         logger.info(f"使用内置 Chromium: {_cp}")
@@ -82,9 +82,8 @@ class BrowserLoginService:
                     ]
                     # PyInstaller 打包路径（Windows）
                     if hasattr(_sys, '_MEIPASS'):
-                        for _name in ["chrome-win64", "chrome-win"]:
-                            _cp = os.path.join(_sys._MEIPASS, "chromium", _name, "chrome.exe")
-                            shell_paths.append(_cp)
+                        _cp = os.path.join(_sys._MEIPASS, "chromium", "chrome.exe")
+                        shell_paths.append(_cp)
                     for _path in shell_paths:
                         if os.path.exists(_path):
                             browser = p.chromium.launch(executable_path=_path, headless=True)
