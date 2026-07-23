@@ -33,12 +33,21 @@ def get_recaptcha_token() -> Optional[str]:
             try:
                 browser = p.chromium.launch(headless=True)
             except Exception:
-                import os
-                fallback = os.path.expanduser("~/Library/Caches/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-mac-arm64/chrome-headless-shell")
-                if os.path.exists(fallback):
-                    browser = p.chromium.launch(executable_path=fallback, headless=True)
+                import os, sys as _sys2
+                # PyInstaller 打包路径（Windows）
+                if hasattr(_sys2, '_MEIPASS'):
+                    _cp = os.path.join(_sys2._MEIPASS, "chromium", "chrome-win64", "chrome.exe")
+                    if os.path.exists(_cp):
+                        browser = p.chromium.launch(executable_path=_cp, headless=True)
+                        logger.info(f"使用内置 Chromium: {_cp}")
+                    else:
+                        raise RuntimeError("内置 Chromium 未找到")
                 else:
-                    raise RuntimeError("No Chromium found")
+                    fallback = os.path.expanduser("~/Library/Caches/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-mac-arm64/chrome-headless-shell")
+                    if os.path.exists(fallback):
+                        browser = p.chromium.launch(executable_path=fallback, headless=True)
+                    else:
+                        raise RuntimeError("No Chromium found")
             page = browser.new_page()
             page.goto("https://tourist-registration-form.hku.hk/", wait_until="domcontentloaded", timeout=30000)
             page.wait_for_timeout(3000)
@@ -71,6 +80,11 @@ class BrowserLoginService:
                         os.path.expanduser("~/Library/Caches/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-mac-arm64/chrome-headless-shell"),
                         os.path.expanduser("~/.cache/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-linux-arm64/chrome-headless-shell"),
                     ]
+                    # PyInstaller 打包路径（Windows）
+                    if hasattr(_sys, '_MEIPASS'):
+                        for _name in ["chrome-win64", "chrome-win"]:
+                            _cp = os.path.join(_sys._MEIPASS, "chromium", _name, "chrome.exe")
+                            shell_paths.append(_cp)
                     for _path in shell_paths:
                         if os.path.exists(_path):
                             browser = p.chromium.launch(executable_path=_path, headless=True)
