@@ -23,46 +23,47 @@ RECAPTCHA_SITE_KEY = "6LcpnTEtAAAAAJi5ZZvdEyXD06N-gWIPpE3w3RFw"
 
 
 def get_recaptcha_token() -> Optional[str]:
+    """获取 reCAPTCHA v3 令牌（支持 PyInstaller 内置 Chromium）"""
     if not _HAS_PLAYWRIGHT:
         logger.error("Playwright 未安装，无法获取 reCAPTCHA 令牌")
-        logger.error("请在终端运行: pip install playwright && playwright install chromium")
         return None
-    """获取 reCAPTCHA v3 令牌（独立函数，不需要 KukuMailService）"""
+
+    # 从 _MEIPASS 查找内置 Chromium（PyInstaller 打包路径）
+    chrome_exe = None
+    if hasattr(sys, '_MEIPASS'):
+        _cp = os.path.join(sys._MEIPASS, "chromium", "chrome.exe")
+        if os.path.exists(_cp):
+            chrome_exe = _cp
+            logger.info(f"找到内置 Chromium: {chrome_exe}")
+        else:
+            logger.warning("_MEIPASS 下未找到 chromium/chrome.exe")
+
     try:
         with sync_playwright() as p:
-            try:
-                browser = p.chromium.launch(headless=True)
-            except Exception:
-                import os, sys as _sys2
-                # PyInstaller 打包路径（Windows）
-                if hasattr(_sys2, '_MEIPASS'):
-                    _cp = os.path.join(_sys2._MEIPASS, "chromium", "chrome.exe")
-                    if os.path.exists(_cp):
-                        browser = p.chromium.launch(executable_path=_cp, headless=True)
-                        logger.info(f"使用内置 Chromium: {_cp}")
-                    else:
-                        raise RuntimeError("内置 Chromium 未找到")
-                else:
-                    fallback = os.path.expanduser("~/Library/Caches/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-mac-arm64/chrome-headless-shell")
-                    if os.path.exists(fallback):
-                        browser = p.chromium.launch(executable_path=fallback, headless=True)
-                    else:
-                        raise RuntimeError("No Chromium found")
+            kwargs = {"headless": True}
+            if chrome_exe:
+                kwargs["executable_path"] = chrome_exe
+            browser = p.chromium.launch(**kwargs)
+            logger.info("Playwright 启动成功")
             page = browser.new_page()
             page.goto("https://tourist-registration-form.hku.hk/", wait_until="domcontentloaded", timeout=30000)
             page.wait_for_timeout(3000)
-            token = page.evaluate("() => new Promise(r => grecaptcha.ready(() => grecaptcha.execute(\"6LcpnTEtAAAAAJi5ZZvdEyXD06N-gWIPpE3w3RFw\", {action: \"submit\"}).then(r)))")
+            token = page.evaluate('() => new Promise(r => grecaptcha.ready(() => grecaptcha.execute("6LcpnTEtAAAAAJi5ZZvdEyXD06N-gWIPpE3w3RFw", {action: "submit"}).then(r)))')
             browser.close()
-            logger.info(f"reCAPTCHA token obtained: {token[:20]}...")
+            if token:
+                logger.info(f"reCAPTCHA token 获取成功: {token[:20]}...")
             return token
     except Exception as e:
-        logger.error(f"get recaptcha token failed: {e}")
+        err = str(e)
+        logger.error(f"get_recaptcha_token 失败: {err}")
+        # 分类错误日志
+        if "Executable doesn't exist" in err:
+            logger.error(">> Chromium 路径不存在，检查是否已打包进 exe")
+        elif "driver" in err.lower() or "node" in err.lower():
+            logger.error(">> Playwright 驱动文件不存在，检查 playwright/driver/ 是否已打包")
+        elif "timeout" in err.lower():
+            logger.error(">> 连接超时，检查网络环境（reCAPTCHA 可能被屏蔽）")
         return None
-
-
-class BrowserLoginService:
-    """使用 Playwright 浏览器获取 reCAPTCHA 令牌，完成港大登录"""
-
     def __init__(self, kuku_service: KukuMailService):
         self.kuku = kuku_service
 
