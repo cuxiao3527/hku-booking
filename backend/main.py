@@ -2067,7 +2067,6 @@ def _open_browser_when_ready():
     threading.Thread(target=_open, daemon=True).start()
 
 
-if __name__ == "__main__":
     _open_browser_when_ready()
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5353)

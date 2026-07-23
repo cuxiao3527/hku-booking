@@ -33,7 +33,36 @@ def start_server():
     uvicorn.run(app, host='127.0.0.1', port=PORT, log_level='error')
 
 
+def _ensure_stop_script():
+    """在 exe 同级目录创建停止脚本（仅 Windows exe 模式）"""
+    import os, sys
+    if not getattr(sys, 'frozen', False):
+        return
+    exe_dir = os.path.dirname(sys.executable)
+    bat_path = os.path.join(exe_dir, "停止服务.bat")
+    if os.path.exists(bat_path):
+        return
+    try:
+        exe_name = os.path.basename(sys.executable)
+        content = (
+            "@echo off\r\n"
+            "chcp 65001 >nul\r\n"
+            "title 停止港大预约系统\r\n"
+            "echo 正在停止服务...\r\n"
+            f"taskkill /f /im {exe_name} 2>nul\r\n"
+            "taskkill /f /im HKUBookingWeb.exe 2>nul\r\n"
+            "echo 服务已停止\r\n"
+            "timeout /t 2 >nul\r\n"
+        )
+        with open(bat_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+    except Exception as e:
+        import logging
+        logging.warning(f"创建停止脚本失败: {e}")
+
+
 if __name__ == '__main__':
+    _ensure_stop_script()
     if is_port_in_use(PORT):
         # 服务已在运行，直接打开浏览器后退出
         webbrowser.open(f'http://127.0.0.1:{PORT}')
