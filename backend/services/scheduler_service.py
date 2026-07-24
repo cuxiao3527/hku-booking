@@ -575,8 +575,8 @@ class BookingScheduler:
             second = int(float(parts[2])) if len(parts) > 2 else 0
             
             # 创建今天的触发时间
-            now = now()
-            trigger_dt = now.replace(hour=hour, minute=minute, second=second, microsecond=0)
+            now_time = now()
+            trigger_dt = now_time.replace(hour=hour, minute=minute, second=second, microsecond=0)
             
             # 如果时间已过，设置为明天
             if trigger_dt <= now:

@@ -42,7 +42,6 @@ from auth import (
 from config import DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD
 from services.hku_api import HKUApiService
 from services.email_service import KukuMailService
-from services.hku_browser_service import BrowserLoginService
 from services.scheduler_service import booking_scheduler
 from services.auto_booking_service import auto_booking_service
 
@@ -157,6 +156,7 @@ def auto_create_email_and_login(db: Session, account: BookingAccount) -> tuple[b
         logger.info(f"[{account.name}] 临时邮箱: {temp_email}")
         
         # 2. 通过浏览器登录（处理 reCAPTCHA）
+        from services.hku_browser_service import BrowserLoginService
         browser_service = BrowserLoginService(mail_service)
         success, msg, hku_token = browser_service.auto_login(temp_email)
         

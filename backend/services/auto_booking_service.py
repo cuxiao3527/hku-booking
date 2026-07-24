@@ -589,8 +589,8 @@ class AutoBookingService:
                         continue
                     
                     # 监控发现有名额时，应该立即去预约（名额随时可能被抢走）
-                    now = now()
-                    trigger_time = now.strftime("%H:%M:%S")  # 使用当前时间作为触发时间记录
+                    now_time = now()
+                    trigger_time = now_time.strftime("%H:%M:%S")  # 使用当前时间作为触发时间记录
                     
                     # 根据 slot 的 start_time_slot 判断 AM/PM
                     start_time_slot = slot.get("start_time_slot", 20)
@@ -971,10 +971,10 @@ class AutoBookingService:
                     interval = config.get("monitor_interval", 30)
                     
                     if config.get("enabled", False):
-                        now = now()
-                        current_hour = now.hour
-                        current_minute = now.minute
-                        current_date = now.date()
+                        now_time = now()
+                        current_hour = now_time.hour
+                        current_minute = now_time.minute
+                        current_date = now_time.date()
                         
                         # === 8:59 准备阶段：只确保账号就绪 ===
                         if current_hour == 8 and current_minute >= 55:
@@ -997,10 +997,10 @@ class AutoBookingService:
                     
                     # 根据时间段调整等待间隔
                     # 8:55-9:10 期间使用更短的间隔（3秒），确保不错过窗口
-                    now = now()
-                    if now.hour == 8 and now.minute >= 55:
+                    now_time = now()
+                    if now_time.hour == 8 and now_time.minute >= 55:
                         wait_interval = 3
-                    elif now.hour == 9 and now.minute <= 10:
+                    elif now_time.hour == 9 and now_time.minute <= 10:
                         wait_interval = 3
                     else:
                         wait_interval = interval
