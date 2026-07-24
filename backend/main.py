@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
+from config import now
 from datetime import timedelta, datetime, timezone
 from typing import List, Optional
 import logging
@@ -165,7 +166,7 @@ def auto_create_email_and_login(db: Session, account: BookingAccount) -> tuple[b
         # 更新账号Token
         account.hku_token = hku_token
         account.token_status = "已登录"
-        account.updated_at = datetime.utcnow()
+        account.updated_at = now()
         db.commit()
         
         logger.info(f"[{account.name}] 登录成功，Token已更新")
@@ -1503,7 +1504,7 @@ async def get_booking_stats_by_date(
     from services.auto_booking_service import auto_booking_service
     
     # 计算今天到两周后的所有日期
-    today = datetime.now().date()
+    today = now().date()
     stats = {}
     for i in range(14):  # 两周 = 14天
         date_str = (today + timedelta(days=i)).strftime("%Y-%m-%d")

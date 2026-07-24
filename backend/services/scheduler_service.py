@@ -4,6 +4,7 @@
 
 import threading
 import time
+from config import now
 from datetime import datetime, timedelta
 from typing import Optional, Callable
 import logging
@@ -141,7 +142,7 @@ class BookingScheduler:
             
             # 更新状态
             task.status = "running"
-            task.executed_at = datetime.utcnow()
+            task.executed_at = now()
             db.commit()
             
             mode_label = "极速模式" if task.task_mode == "rapid" else "稳定模式"
@@ -250,7 +251,7 @@ class BookingScheduler:
                 task.status = "failed"
                 task.result_message = "已有预约记录（重复预约）"
                 if account.is_auto_created:
-                    account.booking_success_time = datetime.utcnow()
+                    account.booking_success_time = now()
                     self.add_log(db, task_id, "WARN", f"账号 {account.id} 重复预约，已标记为不再使用")
                 db.commit()
                 return  # 直接返回，不进行验证
@@ -360,7 +361,7 @@ class BookingScheduler:
                     task.status = "failed"
                     task.result_message = "已有预约记录（重复预约）"
                     if account.is_auto_created:
-                        account.booking_success_time = datetime.utcnow()
+                        account.booking_success_time = now()
                         self.add_log(db, task_id, "WARN", f"账号 {account.id} 重复预约，已标记为不再使用")
                     db.commit()
                     return  # 直接返回，不进行验证
@@ -403,7 +404,7 @@ class BookingScheduler:
             self.add_log(db, task.id, "INFO", f"预约确认成功: {verify_msg}")
 
             if account:
-                account.booking_success_time = datetime.utcnow()
+                account.booking_success_time = now()
                 self.add_log(db, task.id, "INFO", f"已记录账号 {account.id} 的预约成功时间")
 
             # ★ 获取并验证确认邮件 ★
@@ -422,7 +423,7 @@ class BookingScheduler:
                 task.result_message = "已有预约记录（重复预约）"
                 # 即使是重复预约，对于自动账号也视为已消耗
                 if account and account.is_auto_created:
-                    account.booking_success_time = datetime.utcnow()
+                    account.booking_success_time = now()
                     self.add_log(db, task.id, "WARN", f"账号 {account.id} 重复预约，标记为失效")
             else:
                 task.status = "failed"
@@ -574,7 +575,7 @@ class BookingScheduler:
             second = int(float(parts[2])) if len(parts) > 2 else 0
             
             # 创建今天的触发时间
-            now = datetime.now()
+            now = now()
             trigger_dt = now.replace(hour=hour, minute=minute, second=second, microsecond=0)
             
             # 如果时间已过，设置为明天

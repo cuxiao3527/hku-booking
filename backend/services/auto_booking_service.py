@@ -4,6 +4,7 @@ import time
 """
 import threading
 import random
+from config import now
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
 import logging
@@ -219,7 +220,7 @@ class AutoBookingService:
     
     def get_today_booked_count(self, db: Session) -> int:
         """获取今天已预约成功的自动创建账号数量（兼容旧代码）"""
-        today = datetime.now().date()
+        today = now().date()
         return self.get_date_booked_count(db, today.strftime("%Y-%m-%d"))
     
     def create_account_pool(self, db: Session, pool_size: int, owner_id: int = 1):
@@ -311,7 +312,7 @@ class AutoBookingService:
                      f"所有已登录账号={all_logged_in}")
         
         # 计算今天到两周后的所有日期
-        today = datetime.now().date()
+        today = now().date()
         dates_to_check = []
         for i in range(14):  # 两周 = 14天
             check_date = today + timedelta(days=i)
@@ -386,7 +387,7 @@ class AutoBookingService:
             # 标准化日期格式，确保是 YYYY-MM-DD
             try:
                 # 尝试解析日期，确保格式正确
-                from datetime import datetime as dt
+
                 parsed_date = dt.strptime(date_str, "%Y-%m-%d")
                 date_str = parsed_date.strftime("%Y-%m-%d")
             except:
@@ -542,7 +543,7 @@ class AutoBookingService:
                         logger.warning(f"[{idx+1}/{len(dates_with_quota)}] 账号 {account.id} 已有活跃任务(#{any_active_task.id} {any_active_task.target_date} {any_active_task.status})，跳过（防止重复预约）")
                         # 如果任务已成功，更新账号状态
                         if any_active_task.status == "success" and account.booking_success_time is None:
-                            account.booking_success_time = datetime.utcnow()
+                            account.booking_success_time = now()
                             db.commit()
                         continue
                     
@@ -588,7 +589,7 @@ class AutoBookingService:
                         continue
                     
                     # 监控发现有名额时，应该立即去预约（名额随时可能被抢走）
-                    now = datetime.now()
+                    now = now()
                     trigger_time = now.strftime("%H:%M:%S")  # 使用当前时间作为触发时间记录
                     
                     # 根据 slot 的 start_time_slot 判断 AM/PM
@@ -756,7 +757,7 @@ class AutoBookingService:
         logger.info(f"[9点抢票] 获取到 {len(available_dates)} 个日期数据")
         
         # 找到所有有可用名额的日期，特别关注新开放的日期
-        today = datetime.now().date()
+        today = now().date()
         new_slots_found = {}
         
         for day_data in available_dates:
@@ -872,7 +873,7 @@ class AutoBookingService:
                     logger.warning(f"[9点抢票] 账号 {account.id} 已有活跃任务(#{any_active_task.id} {any_active_task.target_date} {any_active_task.status})，跳过（防止重复预约）")
                     # 如果任务已成功，更新账号状态
                     if any_active_task.status == "success" and account.booking_success_time is None:
-                        account.booking_success_time = datetime.utcnow()
+                        account.booking_success_time = now()
                         db.commit()
                     continue
                 
@@ -970,7 +971,7 @@ class AutoBookingService:
                     interval = config.get("monitor_interval", 30)
                     
                     if config.get("enabled", False):
-                        now = datetime.now()
+                        now = now()
                         current_hour = now.hour
                         current_minute = now.minute
                         current_date = now.date()
@@ -996,7 +997,7 @@ class AutoBookingService:
                     
                     # 根据时间段调整等待间隔
                     # 8:55-9:10 期间使用更短的间隔（3秒），确保不错过窗口
-                    now = datetime.now()
+                    now = now()
                     if now.hour == 8 and now.minute >= 55:
                         wait_interval = 3
                     elif now.hour == 9 and now.minute <= 10:

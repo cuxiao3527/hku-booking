@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, ForeignKey, JSON
 from sqlalchemy.orm import relationship
+from config import now
 from datetime import datetime
 from database import Base
 
@@ -13,7 +14,7 @@ class User(Base):
     hashed_password = Column(String(100))
     is_admin = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now)
     
     # 关联的预约账号
     booking_accounts = relationship("BookingAccount", back_populates="owner")
@@ -49,8 +50,8 @@ class BookingAccount(Base):
     booking_success_time = Column(DateTime, nullable=True)  # 预约成功的时间
     is_auto_created = Column(Boolean, default=False)  # 是否为自动创建的账号（用于自动补票）
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=now)
+    updated_at = Column(DateTime, default=now, onupdate=now)
     
     owner = relationship("User", back_populates="booking_accounts")
     booking_tasks = relationship("BookingTask", back_populates="account")
@@ -85,7 +86,7 @@ class BookingTask(Base):
     # 自动登录配置
     auto_login = Column(Boolean, default=True)  # 是否自动登录获取Token
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now)
     executed_at = Column(DateTime, nullable=True)
     
     account = relationship("BookingAccount", back_populates="booking_tasks")
@@ -99,7 +100,7 @@ class SystemConfig(Base):
     key = Column(String(50), unique=True, index=True)
     value = Column(Text)
     description = Column(String(200), nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=now, onupdate=now)
 
 
 class TaskLog(Base):
@@ -110,6 +111,6 @@ class TaskLog(Base):
     task_id = Column(Integer, ForeignKey("booking_tasks.id"), nullable=True)
     level = Column(String(10), default="INFO")  # INFO/WARN/ERROR
     message = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=now)
 
 

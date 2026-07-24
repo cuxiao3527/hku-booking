@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import datetime, timezone, timedelta
 
 try:
     from dotenv import load_dotenv
@@ -34,6 +35,13 @@ SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 SECRET_KEY = os.environ.get("SECRET_KEY", "hku-booking-secret-key-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
+
+# Asia/Shanghai 时区
+TZ_ASIA = timezone(timedelta(hours=8))
+def now():
+    """返回 Asia/Shanghai 时区的当前时间"""
+    return datetime.now(TZ_ASIA)
+
 
 HKU_API_BASE = "https://tourist-registration-form.hku.hk"
 HKU_API_GET_DATES = f"{HKU_API_BASE}/app/user/booking/availableDatesForIndividualTour"
